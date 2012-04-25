@@ -1,0 +1,229 @@
+---
+layout: post
+title: "[URAL1028] Stars (Using SBT, SBST, VBST)"
+date: 2007-06-24 00:24
+comments: true
+categories: [OI, Algorithm, Size Balanced Tree]
+---
+
+Time Limit: 0.25 second
+
+Memory Limit: 16 MB
+
+Astronomers often examine star maps where stars are represented by points on a plane and each star has Cartesian coordinates. Let the level of a star be an amount of the stars that are not higher and not to the right of the given star. Astronomers want to know the distribution of the levels of the stars.
+
+{% img /img/2007-06-24-ural1028-stars.png %}
+
+For example, look at the map shown on the figure above. Level of the star number 5 is equal to 3 (it’s formed by three stars with a numbers 1, 2 and 4). And the levels of the stars numbered by 2 and 4 are 1. At this map there are only one star of the level 0, two stars of the level 1, one star of the level 2, and one star of the level 3.
+
+You are to write a program that will count the amounts of the stars of each level on a given map.
+
+## Input ##
+
+The first line of the input contains a number of stars N (1 ≤ N ≤ 15000). The following N lines describe coordinates of stars (two integers X and Y per line separated by a space, 0 ≤ X,Y ≤ 32000). There can be only one star at one point of the plane. Stars are listed in ascending order of Y coordinate. Stars with equal Y coordinates are listed in ascending order of X coordinate.
+
+## Output ##
+
+The output should contain N lines, one number per line. The first line contains amount of stars of the level 0, the second does amount of stars of the level 1 and so on, the last line contains amount of stars of the level N
+
+## Solution ##
+
+挺不错的一道用来练DS的题：很多DS都能用。我这里用了SBT(Size Balanced Tree)、静态BST和虚BST。树状数组也可以做，但是我不会~~~ 本来看好多人都说用线段树的也想试试，但是发现ST写起来无论在时空消耗还是编程复杂度上都没有优势……莫非是我搞垃圾了？哪位帮忙放个ST让我瞻仰下，多谢……
+
+下面是代码。没有做速度的比较，因为没有可比性：SBT用了动态储存，VBST用了排序，SBST则是直接建树。这样速度无法体现DS的优劣，比较就没有必要了。
+
+SBT版（与普通SBT不同，旋转和插入都需要维护less）：
+
+{% codeblock stars-sbt.cpp %}
+/*
+  Name: URAL#1028. Stars
+  Author: 巨菜逆铭(Tom Tung)
+  Date: 20-06-07 16:50
+  Description: Using Size Balanced Tree
+*/
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
+#define NDEBUG
+#ifndef NDEBUG
+  FILE *fin=fopen("INPUT.TXT","r");
+  FILE *fout=fopen("OUTPUT.TXT","w");
+#else
+  FILE *fin=stdin;
+  FILE *fout=stdout;
+#endif
+using namespace std;
+struct SBTNode{
+	SBTNode *ch[2];
+	long key;
+	unsigned long size,less;
+	SBTNode(long _key,unsigned long _size);
+}NIL=SBTNode(0,0);
+typedef SBTNode *SBTree;
+SBTNode::SBTNode(long _key,unsigned long _size=1){
+	ch[0]=ch[1]=&NIL;
+	size=_size;
+	key=_key;
+	less=1;
+}
+inline void SBT_Rotate(SBTree &x, bool flag){
+	SBTNode *y=x->ch[!flag];
+	assert(y!=&NIL&&x!=&NIL);
+	x->ch[!flag]=y->ch[flag];
+	y->ch[flag]=x;
+	y->size=x->size;
+	x->size=x->ch[0]->size+x->ch[1]->size+1;
+	if(!flag)	y->less+=x->less;
+	else	x->less-=y->less;
+	assert(x->less>0);
+	x=y;
+}
+void SBT_Maintain(SBTree &T,bool flag){
+	if(T->ch[flag]->ch[flag]->size>T->ch[!flag]->size)
+		SBT_Rotate(T,!flag);
+	else if(T->ch[flag]->ch[!flag]->size>T->ch[!flag]->size){
+		SBT_Rotate(T->ch[flag],flag);
+		SBT_Rotate(T,!flag);
+	}
+	else return;
+	SBT_Maintain(T->ch[0],0);
+	SBT_Maintain(T->ch[1],1);
+	SBT_Maintain(T,0);
+	SBT_Maintain(T,1);
+}
+
+unsigned lev;
+void SBT_Insert(SBTree &T, long key){
+	if(T==&NIL){
+		T=new SBTNode(key);
+		return;
+	}
+	if(key>=T->key)	lev+=(T->less);
+	if(key<=T->key)	T->less++;
+	if(key==T->key)	return;
+	T->size++;
+	SBT_Insert(T->ch[key>T->key],key);
+	assert(lev<15000);
+	SBT_Maintain(T,key>T->key);
+}
+
+int main(){
+	unsigned N=0,level[15000]={0};
+	SBTree T=&NIL;
+	fscanf(fin,"%u",&N);
+	for(int i=1,x,y;i<=N;i++){
+		fscanf(fin,"%u%u",&x,&y);
+		lev=0;
+		SBT_Insert(T,x);
+		level[lev]++;
+	}
+	for(int i=0;i<N;i++)	fprintf(fout,"%dn",level[i]);
+	fclose(fin);
+	fclose(fout);
+	return 0;
+}
+{% endcodeblock %}
+
+VBST版：
+
+{% codeblock stars-vbst.cpp %}
+/*
+  Name: URAL#1028. Stars
+  Author: 巨菜逆铭(Tom Tung)
+  Date: 20-06-07 13:55
+  Description: Using Virtual Binary Search Tree
+*/
+#include <cstdlib>
+#include <cstring>
+#include <cstdio>
+#define NDEBUG
+#ifndef NDEBUG
+  FILE *fin=fopen("INPUT.TXT","r");
+  FILE *fout=fopen("OUTPUT.TXT","w");
+#else
+  FILE *fin=stdin;
+  FILE *fout=stdout;
+#endif
+using namespace std;
+unsigned N,x[15001],y,T[15001],LESS[15001],level[15000];
+int cmp(const void *a, const void *b){return *(int*)a-*(int*)b;}
+void Ins(unsigned xi){
+	unsigned l=1,r=N,lev=0,m;
+	while(l<r){
+		m=(l+r)/2;
+		if(T[m]<=xi)	lev+=LESS[m];
+		if(xi<=T[m])	LESS[m]++;
+		if(xi==T[m])	break;
+		else if(xi<T[m])	r=m-1;
+		else	l=m+1;
+	}
+	level[lev]++;
+}
+int main(){
+	fscanf(fin,"%u",&N);
+	for(int i=1;i<=N;i++)	fscanf(fin,"%u%u",&x[i],&y);
+	memcpy(T,x,sizeof(x));
+	qsort(T+1,N,sizeof(T[1]),cmp);
+	for(int i=1;i<=N;i++)	Ins(x[i]);
+	for(int i=0;i<N;i++)	fprintf(fout,"%dn",level[i]);
+	fclose(fin);
+	fclose(fout);
+	return 0;
+}
+{% endcodeblock %}
+
+SBST版：
+
+{% codeblock stars-sbst.cpp %}
+/*
+  Name: URAL#1028. Stars
+  Author: 巨菜逆铭(Tom Tung)
+  Date: 20-06-07 17:20
+  Description: Using Static Binary Search Tree
+*/
+#include <cstdlib>
+#include <cstdio>
+#include <cassert>
+#define NDEBUG
+#ifndef NDEBUG
+  FILE *fin=fopen("INPUT.TXT","r");
+  FILE *fout=fopen("OUTPUT.TXT","w");
+#else
+  FILE *fin=stdin;
+  FILE *fout=stdout;
+#endif
+using namespace std;
+unsigned N,SBSTree[32002],LESS[32002],level[15000];
+void SBST_Build(unsigned int k){
+	if(k>32001)	return;
+	static unsigned p=0;
+	SBST_Build(k<<1);
+	SBSTree[k]=p++;
+	SBST_Build((k<<1)+1);
+}
+void SBST_Insert(unsigned x)
+{
+	unsigned now=1,lev=0;
+	while(1){
+		if(SBSTree[now]<=x)	lev+=LESS[now];
+		if(x<=SBSTree[now])	LESS[now]++;
+		if(SBSTree[now]>x)	now<<=1;
+		else if(SBSTree[now]<x)	(now<<=1)++;
+		else break;
+	}
+	level[lev]++;
+}
+int main()
+{
+	SBST_Build(1);
+	fscanf(fin,"%u",&N);
+	for(unsigned i=1,x,y;i<=N;i++){
+		fscanf(fin,"%u%u",&x,&y);
+		SBST_Insert(x);
+	}
+	for(int i=0;i<N;i++)	fprintf(fout,"%dn",level[i]);
+	fclose(fin);
+	fclose(fout);
+	return 0;
+}
+{% endcodeblock %}

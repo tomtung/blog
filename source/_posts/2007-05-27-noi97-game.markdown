@@ -1,0 +1,134 @@
+---
+layout: post
+title: "[NOI97] 积木游戏"
+date: 2007-5-27 18:23
+comments: true
+categories: [OI, Algorithm, NOI, Dynamic Programming]
+---
+
+SERCOI 最近设计了一种积木游戏。每个游戏者有N块编号依次为1 ，2，…，N的长方体积木。对于每块积木,它的三条不同的边分别称为”a边”、“b边”和”c边”，如下图所示：
+
+{% img /img/2007-05-noi97-game.jpg %}
+
+游戏规则如下：
+
+1. 从N块积木中选出若干块，并将它们分成M（l<=M<=N）堆，称为第1堆，第2 堆…，第M堆。每堆至少有1块积木，并且第K堆中任意一块积木的编号要大于第K+1堆中任意一块积木的编号(2<=K<=M)。
+2. 对于每一堆积木,游戏者要将它们垂直摞成一根柱子,并要求满足下面两个条件：
+	* 除最顶上的一块积木外，任意一块积木的上表面同且仅同另一块积木的下表面接触，并且要求下面的积木的上表面能包含上面的积木的下表面，也就是说，要求下面的积木的上表面的两对边的长度分别大于等于上面的积木的两对边的长度。
+	* 对于任意两块上下表面相接触的积木，下面的积木的编号要小于上面的积木的编号。
+
+最后，根据每人所摞成的M根柱子的高度之和来决出胜负。
+
+请你编一程序，寻找一种摞积木的方案，使得你所摞成的M根柱子的高度之和最大。
+
+## 输入输出 ##
+
+输入文件是INPUT.TXT。文件的第一行有两个正整数N和M（1<=M<=N<=100），分别表示积木总数和要求摞成的柱子数。这两个数之间用一个空格符隔开。接下来N行依次是编号从1到N的N个积木的尺寸，每行有三个1至1000之间的整数，分别表示该积木a边,b边和c边的长度。同一行相邻两个数之间用一个空格符隔开。
+
+输出文件是OUTPUT.TXT。文件只有一行，为一个整数，表示M根柱子的高度之和。
+
+## 题解 ##
+
+好郁闷，这题我竟然连写带调花了将近一天。。。看来我的基本功的确非常不够。
+
+这题对我的启发还是非常大的。lrj书中讨论了递推方向的选择问题，这是我不曾考虑过的。我以前所有的dp题目都是逆推的，状态表示都是“到此情况下为止能获得的最大/最小值”，我觉得这样表示非常自然。但这题行不通。每一个状态都有很多前趋状态，转移方程写起来非常困难。若顺推则容易得多，因为顺推的情况下每一个状态只对应一个后继。但是顺推的思想让我非常不适应（可见我非常菜）。“此情况以后能获得的最值”，这种表示我仔细体会了很长时间才理解并适应，感觉受益匪浅。
+
+当一个问题满足dp所需的一切但是方程写起来非常麻烦，不妨换个递推方向试试吧。
+
+{% codeblock game.cpp %}
+#include <fstream>
+using namespace std;
+ifstream fin("Input.txt");
+ofstream fout("Output.txt");
+int N,M;
+struct demension{
+   unsigned a,b,c;
+}demen[101];
+ 
+int dp[101][101][101][3];
+inline int h(int a, int k)
+{
+   //memo调用的子过程，返回积木a第k面朝上时的高度
+   assert(a>0&&a<=N);
+   switch(k)
+   {
+      case 0:  return demen[a].c;
+      case 1:  return demen[a].b;
+      case 2:  return demen[a].a;
+   }
+   assert(0);
+}
+inline bool canput(int a, int k, int aa, int kk)
+{
+   //memo调用的子过程，返回a的k面能否容纳aa的kk面
+   int i,j,ii,jj;
+   switch(k)
+   {
+      case 0:
+         i=demen[a].a;
+         j=demen[a].b;
+         break;
+      case 1:
+         i=demen[a].a;
+         j=demen[a].c;
+         break;
+      case 2:
+         i=demen[a].b;
+         j=demen[a].c;
+         break;
+      default:
+         assert(0);
+   }
+   if(i<j)  swap(i,j);
+   switch(kk)
+   {
+      case 0:
+         ii=demen[aa].a;
+         jj=demen[aa].b;
+         break;
+      case 1:
+         ii=demen[aa].a;
+         jj=demen[aa].c;
+         break;
+      case 2:
+         ii=demen[aa].b;
+         jj=demen[aa].c;
+         break;
+      default:
+         assert(0);
+   }
+   if(ii<jj)   swap(ii,jj);
+   return (i>=ii&&j>=jj);
+   //这里的题意我开始理解错了，不需要j>=ii。这个错误让我花了一下午调试
+}
+int memo(int i, int a, int b, int k)
+{
+   /*已经用前a块积木摆成了i根柱子，顶面积木b的的面k朝上
+   之后还能获得的最大高度（决策是否使用a+1块积木、如何使用）*/
+   if(dp[i][a][b][k]!=0)   return dp[i][a][b][k];
+   if(a==N) //边界条件
+      if(i==M) return 0;
+      else  return INT_MIN;
+   int ans=memo(i,a+1,b,k);   //不使用第a+1块积木
+   if(i<M)
+      for(int kk=0;kk<=2;kk++)
+         if(ans<memo(i+1,a+1,a+1,kk)+h(a+1,kk))
+            ans=memo(i+1,a+1,a+1,kk)+h(a+1,kk); //新起一堆
+   if(i>0)//这个条件的疏忽让我调试了一早上
+      for(int kk=0;kk<=2;kk++)
+         if(canput(b,k,a+1,kk)&&ans<memo(i,a+1,a+1,kk)+h(a+1,kk))
+            ans=memo(i,a+1,a+1,kk)+h(a+1,kk);   //放在前一堆上
+   dp[i][a][b][k]=ans;
+   return ans;
+}
+ 
+int main()
+{
+   fin >> N >> M;
+   for(int i=1;i<=N;i++)
+      fin >> demen[i].a >> demen[i].b >> demen[i].c;
+   demen[0].a=demen[0].b=demen[0].c=1001;
+   fout << memo(0,0,0,0) << endl;
+   return 0;
+}
+{% endcodeblock %}

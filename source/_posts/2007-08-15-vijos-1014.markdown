@@ -1,0 +1,92 @@
+---
+layout: post
+title: "[VIJOS 1014] 旅行商简化版"
+date: 2007-08-15 21:25
+comments: true
+categories: [OI, Algorithm, Dynamic Programming]
+---
+
+## 背景 ##
+
+欧几里德旅行商(Euclidean Traveling Salesman)问题也就是货郎担问题一直是困扰全世界数学家、计算机学家的著名问题。现有的算法都没有办法在确定型机器上在多项式时间内求出最优解，但是有办法在多项式时间内求出一个较优解。
+
+为了简化问题，而且保证能在多项式时间内求出最优解，J.L.Bentley提出了一种叫做bitonic tour的哈密尔顿环游。它的要求是任意两点(a,b)之间的相互到达的代价dist(a,b)=dist(b,a)且任意两点之间可以相互到达，并且环游的路线只能是从最西端单向到最东端，再单项返回最西端，并且是一个哈密尔顿回路。
+
+## 描述 ##
+
+著名的NPC难题的简化版本
+
+现在笛卡尔平面上有n(n<=1000)个点，每个点的坐标为(x,y)(-2^31 < x,y < 2^31 ，且为整数)，任意两点之间相互到达的代价为这两点的欧几里德距离，现要你编程求出最短bitonic tour。
+
+## 输入格式 ##
+
+第一行一个整数n
+
+
+接下来n行，每行两个整数x,y，表示某个点的坐标。
+
+
+输入中保证没有重复的两点，保证最西端和最东端都只有一个点。
+
+## 输出格式 ##
+
+一行，即最短回路的长度，保留2位小数。
+
+## 来源 ##
+
+《算法导论（第二版）》 15-1
+
+## 题解 ##
+
+基本DP。
+
+这题需要补充一个条件：任何两点的x坐标都不相等。
+
+首先按照x坐标对所有点进行排序，并从西到东依次编号。这样我们就可以进行DP了。阶段可以按照从西到东的各个点来划分。
+
+{% img /img/2007-08-15-vijos-1014.png %}
+
+如图，我们对E点代表的阶段进行决策，有两种决策：E连B或E连D。这样，类似B、D的两个点就可以表示一种状态。
+
+我们用dp[i][j]表示一种状态，表示在这两个点代表的状态之后，还能得到的最小长度。则有
+
+`dp[i][j]=dp[j][i]=min{dp[i][k]+dist[j][k],dp[k][j]+dist[i][k]}`，其中`(k=max(i,j)+1)`
+
+`dp[0][0]`就是所求的解。边界也很好处理。时间复杂度为 O( N^2 )。
+
+源码：
+
+
+{% codeblock vijos1014.cpp %}
+#include <iostream>
+#include <iomanip>
+#include <cstdlib>
+#include <cmath>
+using namespace std;
+double dp[1000][1000],dist[1000][1000];
+int N;
+struct Dot{	long x,y;}dots[1000];
+int cmp(const void *a, const void *b){
+	return ((Dot*)a)->x-((Dot*)b)->x;
+}
+double memo(int a, int b){
+	if(dp[a][b]>0)	return dp[a][b];
+	if(a==N-1)	return dist[N-1][b];
+	if(b==N-1)	return dist[N-1][a];
+	int c=max(a,b)+1;
+	return dp[b][a]=dp[a][b]=min(memo(a,c)+dist[b][c],memo(c,b)+dist[a][c]);
+}
+int main(){
+	cin >> N;
+	for(int i=0;i<N;i++)
+		cin >> dots[i].x >> dots[i].y;
+	qsort( dots, N, sizeof(dots[0]), cmp );
+	for(int i=0;i<N;i++)
+		for(int j=i+1;j<N;j++){
+			double x=dots[i].x-dots[j].x,y=dots[i].y-dots[j].y;
+			dist[i][j]=dist[j][i]=sqrt(x*x+y*y);
+		}
+	cout << fixed << setprecision(2) <<memo(0,0) << endl;
+	return 0;
+}
+{% endcodeblock %}
