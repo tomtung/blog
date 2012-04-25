@@ -58,7 +58,7 @@ repeated values. So you get a `Set[Boolean]` which consists of only 2 values. Yo
 you are familiar with LINQ in C#. In C#
 
 {% codeblock lang:csharp %}
-new HashSet(new[] {1, 2, 3, 4}).Select(x =&gt; x%2 == 0)
+new HashSet(new[] {1, 2, 3, 4}).Select(x => x%2 == 0)
 {% endcodeblock %}
 
 gives you an `IEnumerable` that consists of "`false`, `true`, `false`, `true`" in order, because the `HashSet` is simply
