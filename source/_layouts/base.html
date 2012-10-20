@@ -5,7 +5,7 @@ PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
 <html lang="zh-cn">
 <head>
   <meta charset="UTF-8">
-  <title>{{ site.title }}</title>
+  <title>{% if page.title %}{{ page.title }} - {% endif %}{{ site.title }}</title>
 
   <meta name="author" content="{{ site.author }}">
   {% capture description %}{% if page.description %}{{ page.description }}{% else %}{{ content | raw_content }}{% endif %}{% endcapture %}
