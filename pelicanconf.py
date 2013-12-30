@@ -54,8 +54,8 @@ DATE_FORMATS = {
     'zh': '%Y-%m-%d',
 }
 
-STATIC_PATHS = ['images']
-
+STATIC_PATHS = ['images', 'extra/favicon.png']
+EXTRA_PATH_METADATA = {'extra/favicon.png': {'path': 'favicon.png'}}
 
 THEME = './theme/pelican-minga'
 
