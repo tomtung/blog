@@ -1,0 +1,3 @@
+[submodule "theme/pelican-minga"]
+	path = theme/pelican-minga
+	url = https://github.com/tomtung/pelican-minga.git

@@ -1,0 +1,216 @@
+[NOI 01][POJ1182] 食物链
+========================
+
+:date: 2007-07-08 22:21
+:tags: OI, algorithm, disjoint-set, data structure
+
+时限：3s
+
+空间限制：64MB
+
+动物王国中有三类动物A,B,C，这三类动物的食物链构成了有趣的环形。A吃B， B吃C，C吃A。
+
+现有N个动物，以1－N编号。每个动物都是A,B,C中的一种，但是我们并不知道它到底是哪一种。
+
+有人用两种说法对这N个动物所构成的食物链关系进行描述：
+
+第一种说法是“1 X Y”，表示X和Y是同类。
+
+第二种说法是“2 X Y”，表示X吃Y。
+
+此人对N个动物，用上述两种说法，一句接一句地说出K句话，这K句话有的是真的，有的是假的。当一句话满足下列三条之一时，这句话就是假话，否则就是真话。
+
+1. 当前的话与前面的某些真的话冲突，就是假话；
+2. 当前的话中X或Y比N大，就是假话；
+3. 当前的话表示X吃X，就是假话。
+
+你的任务是根据给定的N（1<=N<=50,000）和K句话（0<=K<=100,000），输出假话的总数。
+
+输入文件（eat.in）
+------------------
+
+第一行是两个整数N和K，以一个空格分隔。
+
+以下K行每行是三个正整数 D，X，Y，两数之间用一个空格隔开，其中D表示说法的种类。
+
+若D=1，则表示X和Y是同类。
+
+若D=2，则表示X吃Y。
+
+输出文件（eat.out）
+-------------------
+
+只有一个整数，表示假话的数目。
+
+题解
+----
+
+郁闷死了……这本来是个弱题，我也想着两下搞定算了，结果从昨天下午搞到今晚才搞定。关系想不清楚就会越写越乱。
+
+显然并查集。把已知的每一类动物看成一个集合。当我们得到（或推断出）两只动物是同类的信息时，我们需要合并它们所在的集合。
+
+但是当我们处理捕食关系时怎么办呢？这就需要处理各个集合间的关系了。我这里使用了两个额外的域分别指向它的天敌和猎物集合中的一个元素（名字分别是killer和food……可见我英语很烂，给变量起名字也不在行）。每三个相关的集合构成一个关系组。我们就可以通过对这两个域的维护来处理一个集合与关系组内另外两个集合的关系了。
+
+注意，我们不能一上来得到一组关系就说“好，那你就是A，你就是B吧”。因为我们在得到两个关系组中某两个集合的关系（包括同类和捕食）时需要合并两个关系组，而这时很明显会挂得很惨。我们只能维护各个关系组内的关系，在合并组时才不会出错。当关系组合并时，两个关系组将合二为一，我们就需要分别合并关系组内对应集合，并且维护它们的那两个额外的域。
+
+在维护这两个域时需要想清楚，有没有漏掉的。不清楚就开写，只能像我一样越搞越乱。
+
+我把文件IO改成stdio后交poj后得到的时空开销：
+
+|image0|
+
+修改后还算清晰的代码：
+
+.. code:: cpp
+
+    #include <cstdio>
+    using namespace std;
+    struct Set{ long rank,p,food,killer; }set[50001];
+    long lie_sum,N,K;
+    long root(long x){
+        if(set[x].p!=x) set[x].p=root(set[x].p);
+        return set[x].p;
+    }
+    long unite(long x, long y){
+        x=root(x),y=root(y);
+        if(x==y||x==0||y==0)    return x!=0?x:y;
+        if(set[x].rank>set[y].rank) set[y].p=x;
+        else{
+            set[x].p=y;
+            if(set[x].rank==set[y].rank)    set[y].rank++;
+        }
+        set[x].food=set[y].food=unite(set[x].food,set[y].food);
+        set[x].killer=set[y].killer=unite(set[x].killer,set[y].killer);
+        return set[x].p;
+    }
+    void eat(long x, long y){
+        x=root(x),y=root(y);
+        if(root(set[x].food)==y)    return;
+        set[y].killer=unite(x,set[y].killer);
+        set[x].food=unite(y,root(set[x].food));
+        set[x].killer=set[y].food=unite(set[x].killer,set[y].food);
+        long z=set[x].killer;
+        if(z!=0){
+            set[z].killer=y;
+            set[z].food=x;
+        }
+    }
+    bool istrue(long oper, long x, long y){
+        if(x>N||y>N)    return false;
+        x=root(x),y=root(y);
+        long xk=root(set[x].killer),xf=root(set[x].food);
+        switch(oper){
+            case 1: return(x==0||y==0||x==y||xk!=y&&xf!=y);
+            case 2: return(x!=y&&(xk==0||xk!=y));
+        }
+    }
+    int main(){
+        FILE *fin=fopen("eat.in","r"),*fout=fopen("eat.out","w");
+        fscanf(fin,"%ld%ld",&N,&K);
+        for(long i=1;i<=N;i++)  set[i].p=i;
+        for(long i=1,oper,x,y;i<=K;i++){
+            fscanf(fin,"%ld%ld%ld",&oper,&x,&y);
+            if(istrue(oper,x,y))
+                switch(oper){
+                    case 1: unite(x,y); break;
+                    case 2: eat(x,y);
+                }
+            else lie_sum++;
+        }
+        fprintf(fout,"%ldn",lie_sum);
+        fclose(fin),fclose(fout);
+        return 0;
+    }
+
+下面是另外一种解法，同样使用了并查集。这是我在思考Parity Game时得到启发想出来的。 我们上面处理三种动物关系时是通过处理各类动物组成的集合之间的关系来进行的。这种方法的实质其实是并查集“套”并查集。 这种方法在关系较为简单时还有效，但如果关系较复杂呢？显然会因过于复杂而力不从心。
+
+这就需要我下面要说的这种方法了。
+
+其实很简单。只要稍稍变换一下思路就行了。我们避免处理集合间的关系，而是把它处理成集合内部的问题。我们把所有发生关系的动物看成一个集合，它们不需要是同类的。因为我们知道，这样形成的整个集合中各个动物间的关系都是密切相关的，任何一个动物身份的确定都会使得整个集合确定下来。我们为了维持这种关系，只需维护每个动物与其父节点之间的捕食关系就行了(通过简单维护一个p\_r域实现)。而任意两个在同一集合中的动物都可以通过根节点联系起来。路径压缩也很好实现。当两个动物发生关系时，我们只需要合并两个集合就可以处理所有的关系了。就这么简单。
+
+时空开销（都比第一种方法小）：
+
+|image1|
+
+代码：
+
+.. code:: cpp
+
+    //#define NDEBUG
+    #include <iostream>
+    #include <cstdio>
+    #include <cstdlib>
+    #include <cassert>
+    using namespace std;
+    const long max_n = 50000;
+    long N,K,lie_sum;
+    struct set_elem{
+        long p,rank;
+        long p_r;//the relationship between the node and its father
+        //1 means equal, 2 mean it eat it's father,
+        //3 means its father eats it
+    }set[max_n];
+    long Find(long x,long &ch_r){
+        if(set[x].p!=x){
+            set[x].p=Find(set[x].p,set[x].p_r);
+            if(ch_r==1) ch_r=set[x].p_r;
+            else if(ch_r!=set[x].p_r) ch_r=1;
+            else ch_r=(ch_r==2?3:2);
+        }
+        return set[x].p;
+    }
+    void Union(long oper,long x,long y){
+        //we should be sure that x and y are not in one same set
+        assert(oper==1||oper==2||oper==3);
+        y=Find(y,oper);
+        if(oper!=1) oper=(oper==2?3:2);
+        x=Find(x,oper);
+        assert(x!=y);
+        if(set[x].rank>set[y].rank){
+            set[y].p=x;
+            set[y].p_r=oper;
+        }else{
+            set[x].p=y;
+            if(oper!=1) oper=(oper==2?3:2);
+            set[x].p_r=oper;
+            if(set[x].rank==set[y].rank) set[y].rank++;
+        }
+
+    }
+    int main(){
+        FILE *fin = fopen("eat.in","r"),*fout = fopen("eat.out","w");
+        fscanf(fin,"%ld%ld",&N,&K);
+        for(int i=1;i<=N;i++)   set[i].p=i; //initialize the set
+        for(long i=1,oper,x,y,tmp;i<=K;i++){
+            fscanf(fin,"%ld%ld%ld",&oper,&x,&y);
+            if(x>N||y>N){
+                //cout << i << endl;
+                lie_sum++;
+                continue;
+            }
+            tmp=1;Find(y,tmp);
+            tmp=1;Find(x,tmp);
+            if(set[x].p!=set[y].p) Union(oper,x,y);
+            else if(oper==1&&set[x].p_r==set[y].p_r) continue;
+            else if(oper==2&& 
+                  (set[x].p_r==2&&set[y].p_r==1||
+                   set[x].p_r==1&&set[y].p_r==3||
+                   set[x].p_r==3&&set[y].p_r==2) 
+                 ) continue;
+            else {
+                //cout << i << endl;
+                lie_sum++;
+            }
+            /*
+            if(istrue(oper,x,y))    Union(short(oper),x,y);
+            else lie_sum++;
+            */
+        }
+        fprintf(fout,"%ldn",lie_sum);
+        fclose(fin),fclose(fout);
+        system("pause");
+        return 0;
+    }
+
+.. |image0| image:: /images/2007-07-08-poj-1182-1.png
+.. |image1| image:: /images/2007-07-08-poj-1182-2.png

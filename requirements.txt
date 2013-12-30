@@ -1,0 +1,12 @@
+Jinja2>=2.7
+Markdown
+MarkupSafe
+Pygments
+Unidecode
+blinker
+docutils
+feedgenerator>=1.6
+pelican>=3.3
+pytz>=0a
+six
+typogrify
