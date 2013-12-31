@@ -12,8 +12,9 @@ from pelicanconf import *
 
 RELATIVE_URLS = False
 
-FEED_ALL_ATOM = 'feed/atom.xml'
-CATEGORY_FEED_ATOM = 'feed/%s.atom.xml'
+FEED_RSS = 'feed/index.html'
+FEED_ATOM = 'feed/atom.xml'
+FEED_ALL_ATOM = 'feed/all.atom.xml'
 
 DELETE_OUTPUT_DIRECTORY = True
 
