@@ -35,10 +35,10 @@ DIRECT_TEMPLATES = ('index', 'archives', 'tags')
 ARTICLE_URL = '{date:%Y}/{date:%m}/{slug}/'
 ARTICLE_SAVE_AS = '{date:%Y}/{date:%m}/{slug}/index.html'
 
-ARCHIVES_URL = '/archive'
+ARCHIVES_URL = 'archive'
 ARCHIVES_SAVE_AS = 'archive/index.html'
 
-TAGS_URL = '/tags'
+TAGS_URL = 'tags'
 TAGS_SAVE_AS = 'tags/index.html'
 
 DISPLAY_CATEGORIES_ON_MENU = False
