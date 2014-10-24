@@ -6,7 +6,7 @@ Unidecode
 blinker
 docutils
 feedgenerator>=1.6
-pelican>=3.3
+pelican==3.3.0
 pytz>=0a
 six
 typogrify
