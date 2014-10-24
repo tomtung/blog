@@ -60,14 +60,14 @@ Probabilistic latent semantic analysis (概率潜在语义分析，pLSA) 是一�
 
 这里出现了 :math:`\log` 套 :math:`\sum` 的形式，导致很难直接拿它做最大似然。但假如能观察到 :math:`z`\ ，问题就很简单了。于是我们想到根据 EM 算法 （参见我的\ `上篇笔记 </2011/10/em-algorithm/>`__\ ），可以用下式迭代逼近 :math:`\arg\max_\theta L(\theta)`\ ：
 
-.. math:: \arg\max_\theta Q_t(\theta) = \arg\max_\theta \sum_{d,w} n(d,w) E_{z|d,w;\theta_t}[\log P(w|d;\theta)]
+.. math:: \arg\max_\theta Q_t(\theta) = \arg\max_\theta \sum_{d,w} n(d,w) E_{z|d,w;\theta_t}[\log P(w, z|d;\theta)]
 
 其中
 
 .. math::
 
-   E_{z|d,w;\theta_t}[\log P(w|d;\theta)]
-   &= \sum_z P(z|d,w;\theta_t) \log P(w|d;\theta) \\\\
+   E_{z|d,w;\theta_t}[\log P(w, z|d;\theta)]
+   &= \sum_z P(z|d,w;\theta_t) \log P(w, z|d;\theta) \\\\
    &= \sum_z P(z|d,w;\theta_t) [\log P(w|z) + \log P(z|d)] \\\\
 
 在 E-step 中，我们需要求出 :math:`Q_t(\theta)` 中除 :math:`\theta` 外的其它未知量，也就是说对于每组 :math:`(d^{(i)}, w^{(j)}, z^{(k)})` 我们都需要求出 :math:`P(z^{(k)}|d^{(i)},w^{(j)};\theta_t)`\ 。 根据\ `贝叶斯定理 <http://en.wikipedia.org/wiki/Bayes%27_theorem>`__\ 贝叶斯定理，我们知道：
